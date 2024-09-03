@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// An imaginary config file
 #[derive(Serialize, Deserialize, Debug)]
@@ -26,6 +26,23 @@ trait DeserializeConfig {
 }
 
 // TODO add some types that implement `DeserializeConfig`
+struct JsonConfig;
+
+struct YamlConfig;
+
+impl DeserializeConfig for JsonConfig {
+    fn deserialize<'a>(&self, contents: &'a str) -> Result<Config<'a>, Error> {
+        let config = serde_json::from_str(contents).map_err(Error::Json)?;
+        Ok(config)
+    }
+}
+
+impl DeserializeConfig for YamlConfig {
+    fn deserialize<'a>(&self, contents: &'a str) -> Result<Config<'a>, Error> {
+        let config = serde_yaml::from_str(contents).map_err(Error::Yaml)?;
+        Ok(config)
+    }
+}
 
 fn main() {
     let mut args = std::env::args();
@@ -40,12 +57,24 @@ fn main() {
         Ok(c) => c,
         Err(e) => {
             // `path` was created from an UTF-8 string, so can be converted to one
-            eprintln!("Error reading file at path {}: {}", path.to_str().unwrap(), e);
+            eprintln!(
+                "Error reading file at path {}: {}",
+                path.to_str().unwrap(),
+                e
+            );
             return;
         }
     };
 
-    let config: Config = todo!("Deserialize `file_contents` using either serde_yaml or serde_json depending on the file extension. Use dynamic dispatch");
+    let config: &dyn DeserializeConfig = match _extension {
+        Some("json") => &JsonConfig,
+        Some("yml") => &YamlConfig,
+        _ => return,
+    };
 
-    println!("Config was: {config:?}");
+    let result = config.deserialize(&file_contents);
+    match result {
+        Ok(cfg) => println!("Config was: {cfg:?}"),
+        Err(e) => println!("Error was: {e:?}"),
+    }
 }
