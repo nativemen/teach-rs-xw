@@ -34,13 +34,37 @@ impl Bsn {
     /// Try to create a new BSN. Returns `Err` if the passed string
     /// does not represent a valid BSN
     pub fn try_from_string<B: ToString>(bsn: B) -> Result<Self, Error> {
-        todo!()
+        if !Self::check_bsn_str(bsn.to_string().as_str()) {
+            return Err(Error::InvalidBsn);
+        }
+
+        Ok(Bsn {
+            inner: bsn.to_string(),
+        })
     }
 
     /// Check whether the passed string represents a valid BSN.
     //  Returns `Err` if the passed string does not represent a valid BSN
     pub fn validate(bsn: &str) -> Result<(), Error> {
-        todo!()
+        if !Self::check_bsn_str(bsn) {
+            return Err(Error::InvalidBsn);
+        }
+
+        Ok(())
+    }
+
+    pub fn check_bsn_str(bsn: &str) -> bool {
+        let array = [9, 8, 7, 6, 5, 4, 3, 2, -1];
+        bsn.len() == 9
+            && bsn.chars().all(|c| c.is_ascii_digit())
+            && bsn
+                .chars()
+                .map(|c| c.to_digit(10).unwrap())
+                .zip(array.iter())
+                .map(|(x, &y)| x as i64 * y as i64)
+                .sum::<i64>()
+                % 11
+                == 0
     }
 }
 
@@ -49,7 +73,7 @@ impl Serialize for Bsn {
     where
         S: serde::Serializer,
     {
-        todo!("Serialize `self.inner` into a `str`")
+        serializer.serialize_str(&self.inner)
     }
 }
 
@@ -70,9 +94,21 @@ impl<'de> Deserialize<'de> for Bsn {
 
             // TODO: Override the correct `Visitor::visit_*` to validate the input and output a new `BSN`
             // if the input represents a valid BSN. Note that we do not need to override all default methods
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if !Bsn::check_bsn_str(v) {
+                    return Err(E::custom(Error::InvalidBsn));
+                }
+
+                Ok(Bsn {
+                    inner: v.to_string(),
+                })
+            }
         }
 
-        todo!("use `deserializer` to deserialize a str using a `BsnVisitor`");
+        deserializer.deserialize_str(BsnVisitor)
     }
 }
 
@@ -83,10 +119,20 @@ mod tests {
     #[test]
     fn test_validation() {
         let bsns = include_str!("../valid_bsns.in").lines();
-        bsns.for_each(|bsn| assert!(Bsn::validate(bsn).is_ok(), "BSN {bsn} is valid, but did not pass validation"));
+        bsns.for_each(|bsn| {
+            assert!(
+                Bsn::validate(bsn).is_ok(),
+                "BSN {bsn} is valid, but did not pass validation"
+            )
+        });
 
         let bsns = include_str!("../invalid_bsns.in").lines();
-        bsns.for_each(|bsn| assert!(Bsn::validate(bsn).is_err(), "BSN {bsn} invalid, but passed validation"));
+        bsns.for_each(|bsn| {
+            assert!(
+                Bsn::validate(bsn).is_err(),
+                "BSN {bsn} invalid, but passed validation"
+            )
+        });
     }
 
     #[test]
