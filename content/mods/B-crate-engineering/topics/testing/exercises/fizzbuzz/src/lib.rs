@@ -17,3 +17,18 @@ pub fn fizz_buzz(i: u32) -> String {
 // to compare.
 // You can use the `include_str!()` macro to include file
 // contents as `&str` in your artifact.
+
+#[cfg(test)]
+
+mod tests {
+    use crate::fizz_buzz;
+
+    #[test]
+    fn test_fizzbuzz() {
+        let mut index = 1;
+        for line in include_str!("../fizzbuzz.out").lines() {
+            assert_eq!(fizz_buzz(index), line.trim().to_string());
+            index += 1;
+        }
+    }
+}
