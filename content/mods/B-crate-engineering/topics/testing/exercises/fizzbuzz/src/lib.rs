@@ -1,15 +1,10 @@
 /// Very naive implementation of FizzBuzz
-pub fn fizz_buzz(i: u32) -> String {
-    if i % 3 == 0 {
-        if i % 5 == 0 {
-            "FizzBuzz".to_owned()
-        } else {
-            "Fizz".to_owned()
-        }
-    } else if i % 5 == 0 {
-        "Buzz".to_owned()
-    } else {
-        format!("{i}")
+pub fn fizz_buzz(i: u32) -> &'static str {
+    match (i % 3 == 0, i % 5 == 0) {
+        (true, true) => "FizzBuzz",
+        (true, false) => "Fizz",
+        (false, true) => "Buzz",
+        (false, false) => Box::leak(i.to_string().into_boxed_str()),
     }
 }
 
@@ -27,7 +22,7 @@ mod tests {
     fn test_fizzbuzz() {
         let mut index = 1;
         for line in include_str!("../fizzbuzz.out").lines() {
-            assert_eq!(fizz_buzz(index), line.trim().to_string());
+            assert_eq!(fizz_buzz(index), line.trim());
             index += 1;
         }
     }
