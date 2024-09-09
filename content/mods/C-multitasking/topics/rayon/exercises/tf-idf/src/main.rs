@@ -29,7 +29,10 @@ fn term_frequency(document: &str) -> HashMap<&str, usize> {
         // good enough definition of "word" for this exercise
         .split_whitespace()
         // using fold to get some extra practice with monoids. Using a for loop is also totally fine.
-        .fold(HashMap::default(), |mut hash_map, word| todo!())
+        .fold(HashMap::default(), |mut hash_map, word| {
+            *hash_map.entry(word).or_insert(0) += 1;
+            hash_map
+        })
 }
 
 fn combine_occurrences<'a>(
@@ -41,12 +44,20 @@ fn combine_occurrences<'a>(
     //
     // NOTE: we're already using all of our cores to process whole documents. Using a parallel iterator
     // here would likely make performance worse!
-    b.into_iter().fold(a, |mut hash_map, (word, count)| todo!())
+    b.into_iter().fold(a, |mut hash_map, (word, count)| {
+        *hash_map.entry(word).or_insert(0) += count;
+        hash_map
+    })
 }
 
 /// Map each word in the document to the value 1
 fn term_occurrence(document: &str) -> HashMap<&str, usize> {
-    todo!()
+    document
+        .split_whitespace()
+        .fold(HashMap::default(), |mut hash_map, word| {
+            hash_map.entry(word).or_insert(1);
+            hash_map
+        })
 }
 
 /// For each word, in how many of the documents it occurs
@@ -55,7 +66,10 @@ fn document_frequency<'a>(
 ) -> HashMap<&'a str, usize> {
     // map each document to a hashmap that maps words to whether they occur (use `term_occurrence`),
     // then reduce, combining the counts.
-    todo!()
+    documents
+        .map(|doc| term_occurrence(doc))
+        .reduce_with(|a, b| combine_occurrences(a, b))
+        .unwrap_or_default()
 }
 
 fn score_document(
@@ -99,7 +113,7 @@ impl<'a> SearchResultQueue<'a> {
 
     fn push(&mut self, score: f64, name: &'a str) {
         let empty_space = self.results.len() < self.n_results;
-        let higher_score = matches!(self.results.get(0), Some((s2, _)) if f64::total_cmp(&score, s2) == Ordering::Greater);
+        let higher_score = matches!(self.results.first(), Some((s2, _)) if f64::total_cmp(&score, s2) == Ordering::Greater);
 
         if empty_space || higher_score {
             self.results.push((score, name));
