@@ -24,6 +24,9 @@ struct Mutex<T> {
 }
 
 // TODO implement Send for Mutex<T>.
+unsafe impl<T: Send> Send for Mutex<T> {
+    /* no methods to implement */
+}
 //
 // Implementing `Sync` is an assertion that `Mutex<T>` is safe to move between threads, which is
 // equivalent to saying that `&Mutex<T>` implement `Send`.
@@ -63,14 +66,15 @@ impl<T> Mutex<T> {
 
     pub fn lock(&self) -> MutexGuard<T> {
         // TODO: implement lock()
-        todo!()
+        self.block_until_you_lock();
+        MutexGuard { mutex: self }
     }
 
     pub fn into_inner(self) -> T {
         // TODO: implement into_inner()
         // hint: look at the available functions on UnsafeCell
         // question: do you need to `block_until_you_lock`?
-        todo!()
+        self.cell.into_inner()
     }
 }
 
@@ -104,6 +108,11 @@ impl<T> DerefMut for MutexGuard<'_, T> {
 
 // TODO: implement a `Drop` for MutexGuard that unlocks the mutex
 // use the `unlock` method that is already defined for `Mutex`
+impl<T> Drop for MutexGuard<'_, T> {
+    fn drop(&mut self) {
+        self.mutex.unlock();
+    }
+}
 
 // The function main() should execute cleanly and normally, i.e. without entering a deadlock
 // situation and certainly not causing any undefined behaviour.
@@ -115,22 +124,22 @@ impl<T> DerefMut for MutexGuard<'_, T> {
 fn main() {
     let n = Mutex::new(String::from("threads: "));
     std::thread::scope(|s| {
-        s.spawn(|| n.lock().push_str("0"));
-        s.spawn(|| n.lock().push_str("1"));
-        s.spawn(|| n.lock().push_str("2"));
-        s.spawn(|| n.lock().push_str("3"));
-        s.spawn(|| n.lock().push_str("4"));
-        s.spawn(|| n.lock().push_str("5"));
-        s.spawn(|| n.lock().push_str("6"));
-        s.spawn(|| n.lock().push_str("7"));
-        s.spawn(|| n.lock().push_str("8"));
-        s.spawn(|| n.lock().push_str("9"));
-        s.spawn(|| n.lock().push_str("a"));
-        s.spawn(|| n.lock().push_str("b"));
-        s.spawn(|| n.lock().push_str("c"));
-        s.spawn(|| n.lock().push_str("d"));
-        s.spawn(|| n.lock().push_str("e"));
-        s.spawn(|| n.lock().push_str("f"));
+        s.spawn(|| n.lock().push('0'));
+        s.spawn(|| n.lock().push('1'));
+        s.spawn(|| n.lock().push('2'));
+        s.spawn(|| n.lock().push('3'));
+        s.spawn(|| n.lock().push('4'));
+        s.spawn(|| n.lock().push('5'));
+        s.spawn(|| n.lock().push('6'));
+        s.spawn(|| n.lock().push('7'));
+        s.spawn(|| n.lock().push('8'));
+        s.spawn(|| n.lock().push('9'));
+        s.spawn(|| n.lock().push('a'));
+        s.spawn(|| n.lock().push('b'));
+        s.spawn(|| n.lock().push('c'));
+        s.spawn(|| n.lock().push('d'));
+        s.spawn(|| n.lock().push('e'));
+        s.spawn(|| n.lock().push('f'));
     });
     println!("{}", n.into_inner());
 }
